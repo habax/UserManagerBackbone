@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!-- El siguiente ejercicios realiza las operaciones de Alta/modificacion/eliminacion de usuarios-->
+<!-- El ejercicio fue hecho mediante el siguiente tutorial: https://www.youtube.com/watch?v=FZSjvWtUxYk -->
+<!-- ########################## -->
+<!-- Autor: Habacuc Hernandez Ramirez -->
+<!-- Sunce: 2014-08-27 -->
+<!-- ########################## -->
+<html lang="ES">
+	<head>
+		<meta charset="utf-8">
+		<title>BackBone Beginner</title>
+		<link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/css/bootstrap.css">
+	</head>
+	<body>
+		<div class="container">
+			<h1>Manejador de Usuarios</h1>
+			<h3>Backbone + Jquery + Underscore</h3>
+			<hr />
+			<div class="page"></div>
+			<hr />
+			<blockquote>
+				<footer>
+					Esta es una implementación del siguiente tutoríal: <a href="https://www.youtube.com/watch?v=FZSjvWtUxYk" target="blank"> https://www.youtube.com/watch?v=FZSjvWtUxYk </a>
+				</footer>
+			</blockquote>
+			<h5> powered by <a href="http://www.habacuchernandez.com" target="blank">Habacuc Hernández Ramirez</a></h5>
+		</div>
+		<!-- # -->
+		<!-- El siguiente es el template para listar los usuarios-->
+		<script type="text/template" id="user-list-template">
+			<a href="#/new" class="btn btn-primary">Nuevo Usuario</a>
+			<table class="table striped table-hover">
+				<thead>
+					<tr>
+						<th>Nombre</th>
+						<th>Apellidos</th>
+						<th>Edad</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+				<% _.each(users, function(user){ %>
+					<tr>
+						<td><%= user.get('firstname') %></td>
+						<td><%= user.get('lastname') %></td>
+						<td><%= user.get('age') %></td>
+						<td><a href="#/edit/<%= user.id %>" class="btn">Editar<a/></td>
+					</tr>
+				<% }); %>	 
+				</tbody>
+			</table>
+		</script>
+		<!-- # -->
+		<!-- El siguiente es el template para editar/crear los usuarios-->
+		<script type="text/template" id="edit-user-template">
+			<form class="edit-user-form form-horizontal">
+				<legend><%= user ? 'Actualizar' : 'Crear' %> Usuario</legend>
+				<label>Nombre</label>
+				<input type="text" name="firstname" value="<%= user ? user.get('firstname')  : '' %>"/>
+				<label>Apellidos</label>
+				<input type="text" name="lastname" value="<%= user ? user.get('lastname')  : '' %>"/>
+				<label>Edad</label>
+				<input type="text" name="age" value="<%= user ? user.get('age')  : '' %>"/>
+				<hr />
+				<button type="button" class="btn cancelar">Cancelar</button>
+				<button type="submit" class="btn btn-success"><%= user ? 'Actualizar' : 'Crear' %></button>
+				<% if(user) { %>
+					<input type="hidden" name="id" value="<%= user.get('id') %>"/>
+					<button  type="button" class="btn btn-danger delete">Eliminar</button>
+				<% }; %>
+			</form>
+		</script>
+		<!-- # -->
+		<!-- Dependencias/librerias-->
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>
+		<!-- En Accion -->
+		<script type="text/javascript">
+			/* 
+			 * La siguiente es una function que completará las llamadas ajax, debido a que no tenemos hosteado el 
+			 * ejemplo en nuestro servidor local, haremos uso de uno publico, justo para el ejericio
+			 */
+			$.ajaxPrefilter( function( options, originalOptions, jqXHR ) {
+			  options.url = 'http://backbonejs-beginner.herokuapp.com' + options.url;
+			});
+			/* 
+			 * La siguiente es una function que nos permite serealizar objetos para enviarlos mediante ajax	 
+			 */
+			$.fn.serializeObject = function() {
+			  var o = {};
+			  var a = this.serializeArray();
+			  $.each(a, function() {
+			      if (o[this.name] !== undefined) {
+			          if (!o[this.name].push) {
+			              o[this.name] = [o[this.name]];
+			          }
+			          o[this.name].push(this.value || '');
+			      } else {
+			          o[this.name] = this.value || '';
+			      }
+			  });
+			  return o;
+			};
+			/*
+			* Area para las COLECCIONES del ejercicio:
+			*/ 
+			var Users = Backbone.Collection.extend({
+				url: '/users'
+			});
+			// -
+			/*
+			* Area para los MODELOS del ejercicio:
+			*/ 
+			var User = Backbone.Model.extend({
+				urlRoot : '/users'
+			});
+			// -
+			/*
+			* Area para las VISTAS del ejercicio:
+			*/ 
+			//  -- vista del index --
+			var UserList = Backbone.View.extend({
+				el: '.page',
+				render: function() {
+					var users = new Users();
+					var that = this;
+					users.fetch({
+						success: function(users){
+							var template = _.template($('#user-list-template').html(), {users: users.models});
+							that.$el.html(template);
+						}
+					});
+				}
+			});
+			//  -- vista de editar/crear --
+			var EditUser = Backbone.View.extend({
+				el: '.page',
+				render : function(options){
+					var that= this;
+					if(options.id){
+						// GET renquest
+						that.user = new User({id: options.id});
+						that.user.fetch({
+							success: function (user){
+								var template = _.template($('#edit-user-template').html(), {user: user});
+								that.$el.html(template);
+							}
+						});
+					}else{
+						var template = _.template($('#edit-user-template').html(), {user: null});
+						this.$el.html(template);	
+					}
+				},
+				events: {
+					'submit .edit-user-form': 'saveUser',
+					'click .delete': 'deleteUser',
+					'click .cancelar': 'cancelUser'
+				},
+				saveUser: function(ev){
+					var userDetails = $(ev.currentTarget).serializeObject();
+					var user = new User();
+					user.save(userDetails, {
+						success: function(user){
+							router.navigate('',{trigger: true});
+						}
+					});
+					return false;
+				},
+				deleteUser : function(ev){
+					this.user.destroy({
+						success: function(){
+							router.navigate('',{trigger: true});
+						}
+					});
+					return false;
+				},
+				cancelUser : function(ev){
+					router.navigate('',{trigger: true});
+					return false;
+				}
+			});
+			/*
+			* Area para los ROUTEADORES del ejercicio:
+			*/ 
+			var Route = Backbone.Router.extend({
+				routes:{
+					'':'home',
+					'new':'editUser',
+					'edit/:id' : 'editUser'
+				}
+			});
+			// -
+			var userList = new UserList();
+			var editUser = new EditUser();
+			var router = new Route();
+			// -
+			router.on('route:home', function(){
+				userList.render();
+			});
+			router.on('route:editUser', function(id){
+				editUser.render({id:id});
+			});
+			// -
+			Backbone.history.start();
+		</script>
+	</body>
+</html>
